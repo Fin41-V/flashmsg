@@ -1,16 +1,19 @@
 'use client';
-import { useState } from 'react';
-import LetterGlitch from '../components/LetterGlitch';
+
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Shield, SendHorizontal, Copy, CheckCircle2, RefreshCw, Zap, LockKeyhole } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { generateKey, encryptMessage } from '@/utils/crypto';
-import { Terminal, Lock, Copy, CheckCircle2, Hash, Shield } from 'lucide-react';
+import LetterGlitch from '@/components/LetterGlitch';
 
 export default function Home() {
   const [note, setNote] = useState('');
   const [link, setLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
+  const textareaRef = useRef(null);
 
   const createNote = async () => {
     if (!note || loading) return;
@@ -18,92 +21,203 @@ export default function Home() {
     try {
       const key = generateKey();
       const encrypted = encryptMessage(note, key);
-      const { data } = await supabase.from('notes').insert([{ content: encrypted }]).select().single();
+      const { data, error } = await supabase
+        .from('notes')
+        .insert([{ content: encrypted }])
+        .select()
+        .single();
+
+      if (error) throw error;
       if (data) setLink(`${window.location.origin}/view/${data.id}#${key}`);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error("Transmission failure:", e);
+    }
     setLoading(false);
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
-    <main className="relative h-screen w-screen overflow-hidden bg-black font-mono">
-      {/* THE GLITCH BACKGROUND */}
-      <div className="absolute inset-0 z-0">
+    <main className="main-viewport">
+      {/* 1. CSS INJECTION: Forces Quicksand and Layout fix */}
+      <style jsx global>{`
+        @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+          --font-quicksand: 'Quicksand', sans-serif;
+        }
+
+        .main-viewport {
+          background-color: #0a0a0a;
+          min-height: 100vh;
+          width: 100vw;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #e3e3e3;
+          position: relative;
+          overflow: hidden;
+          font-family: var(--font-quicksand);
+        }
+
+        .gemini-pill {
+          background-color: #121212;
+          border-radius: 32px;
+          border: 1px solid #2d3748;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          width: 100%;
+          max-width: 700px;
+          padding: 8px;
+          z-index: 10;
+        }
+
+        .gemini-pill:focus-within {
+          border-color: #4fd1c5;
+          background-color: #161616;
+          box-shadow: 0 0 40px rgba(79, 209, 197, 0.08);
+        }
+
+        .stealth-textarea {
+          background: transparent;
+          border: none;
+          outline: none;
+          width: 100%;
+          min-height: 140px;
+          padding: 20px 28px;
+          color: #e3e3e3;
+          font-size: 1.15rem;
+          resize: none;
+          font-family: var(--font-quicksand);
+          font-weight: 500;
+        }
+
+        .glitch-wrapper {
+          position: absolute;
+          inset: 0;
+          z-index: 0;
+          opacity: 0.15;
+          pointer-events: none;
+        }
+      `}</style>
+
+      {/* 2. THE LETTER GLITCH BACKGROUND */}
+      <div className="glitch-wrapper">
         <LetterGlitch
-          glitchColors={['#1a2e25', '#2b4539', '#61dca3']}
-          glitchSpeed={60}
+          glitchColors={['#2d3748', '#4fd1c5']}
+          glitchSpeed={100}
           centerVignette={true}
-          outerVignette={false}
+          outerVignette={true}
         />
       </div>
 
-      {/* THE UI OVERLAY */}
-      <div className="relative z-10 flex h-full w-full items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-[500px] discord-glass overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)]"
-        >
-          {/* Header */}
-          <div className="flex items-center gap-3 border-b border-white/10 p-4 bg-black/40">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#61dca3]/20 text-[#61dca3]">
-              <Shield size={20} />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold tracking-widest text-[#61dca3] uppercase">FlashMsg Terminal</h1>
-              <p className="text-[10px] text-zinc-500 uppercase">Secure Handshake: Established</p>
-            </div>
-          </div>
+      <div className="relative z-10 w-full flex flex-col items-center px-6">
 
-          <div className="p-6 space-y-6">
-            <AnimatePresence mode="wait">
-              {!link ? (
-                <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  <div className="terminal-input p-4 mb-4">
-                    <textarea
-                      className="w-full bg-transparent border-none outline-none text-sm resize-none h-32 placeholder-zinc-700 text-[#61dca3]"
-                      placeholder="ENTER CLASSIFIED DATA..."
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
-                  </div>
-                  <button
-                    onClick={createNote}
-                    disabled={loading || !note}
-                    className="w-full py-3 bg-[#61dca3] text-black font-bold uppercase text-xs tracking-[0.2em] hover:bg-[#4ebf8b] transition-all disabled:opacity-30 flex items-center justify-center gap-2"
-                  >
-                    {loading ? 'ENCRYPTING...' : <><Lock size={14} /> INITIATE GHOST SEQUENCE</>}
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.div key="link" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
-                  <div className="bg-black/60 rounded p-4 border border-[#61dca3]/30">
-                    <p className="text-[10px] text-[#61dca3] uppercase font-bold mb-2 tracking-widest">Target URL Generated:</p>
-                    <div className="text-xs break-all text-zinc-300 font-mono bg-black/40 p-3 rounded border border-white/5">
-                      {link}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-                    className="w-full py-3 border border-[#61dca3] text-[#61dca3] font-bold uppercase text-xs tracking-widest hover:bg-[#61dca3]/10 transition-all flex items-center justify-center gap-2"
-                  >
-                    {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
-                    {copied ? 'COPIED TO CLIPBOARD' : 'COPY SECRET LINK'}
-                  </button>
-                  <button onClick={() => { setLink(''); setNote(''); }} className="w-full text-[10px] text-zinc-600 uppercase text-center hover:text-zinc-400">
-                    Destroy Session and Restart
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="bg-black/60 p-3 text-center border-t border-white/5">
-            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.3em]">
-              Zero-Knowledge Architecture // Burn-On-Read Enabled
+        {/* HEADER SECTION */}
+        {!link && (
+          <motion.header
+            initial={{ opacity: 0, y: -15 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center mb-12"
+          >
+            <div className="flex items-center justify-center gap-4 mb-3">
+              <Shield className="text-[#4fd1c5]" size={36} />
+              <h1 className="text-3xl font-bold tracking-tight text-white uppercase">FlashMsg</h1>
+            </div>
+            <p className="text-[10px] font-bold tracking-[0.4em] text-zinc-500 uppercase">
+              End-to-End Ephemeral Encryption
             </p>
-          </div>
-        </motion.div>
+          </motion.header>
+        )}
+
+        {/* INTERACTION AREA */}
+        <div className="w-full max-w-[700px]">
+          <AnimatePresence mode="wait">
+            {!link ? (
+              <motion.div
+                key="input"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+              >
+                <div className="gemini-pill">
+                  <textarea
+                    ref={textareaRef}
+                    className="stealth-textarea"
+                    placeholder="Enter message for one-time secure extraction..."
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    onFocus={() => setIsFocused(true)}
+                    onBlur={() => setIsFocused(false)}
+                  />
+                  <div className="flex items-center justify-between px-6 pb-3">
+                    <div className="flex gap-5 text-zinc-600">
+                      <LockKeyhole size={20} className="hover:text-zinc-400 transition-colors cursor-help" title="AES-256-GCM" />
+                      <Zap size={20} className="hover:text-zinc-400 transition-colors cursor-help" title="Burn-on-Read" />
+                      <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 mt-1">Verified Node</span>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={createNote}
+                      disabled={loading || !note.trim()}
+                      className={`h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 ${note.trim() && !loading ? 'bg-[#4fd1c5] text-black shadow-lg shadow-teal-500/20' : 'bg-zinc-800 text-zinc-500'
+                        }`}
+                    >
+                      {loading ? <RefreshCw className="animate-spin" /> : <SendHorizontal size={24} />}
+                    </motion.button>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="link"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full"
+              >
+                <div className="bg-[#121212] rounded-[2.5rem] border border-[#4fd1c5]/30 p-10 text-center shadow-2xl">
+                  <div className="flex items-center justify-center gap-2 text-[#4fd1c5] mb-6">
+                    <div className="h-2 w-2 rounded-full bg-current animate-pulse" />
+                    <h2 className="text-[11px] font-bold uppercase tracking-[0.3em]">
+                      Secure Payload Prepared
+                    </h2>
+                  </div>
+
+                  <div className="bg-black/40 p-6 rounded-2xl font-mono text-zinc-400 break-all text-sm mb-10 border border-white/5 selection:bg-[#4fd1c5]/30">
+                    {link}
+                  </div>
+
+                  <button
+                    onClick={handleCopy}
+                    className="w-full h-16 bg-white text-black rounded-full font-bold uppercase text-[11px] tracking-[0.3em] hover:bg-[#4fd1c5] transition-all duration-300 flex items-center justify-center gap-3 shadow-xl"
+                  >
+                    {copied ? <CheckCircle2 size={20} /> : <Copy size={20} />}
+                    {copied ? 'Copied to Clipboard' : 'Copy Transmission Link'}
+                  </button>
+
+                  <button
+                    onClick={() => { setLink(''); setNote(''); }}
+                    className="mt-8 text-[10px] text-zinc-600 uppercase tracking-widest hover:text-white transition-colors font-bold"
+                  >
+                    [ Purge Buffer and Restart ]
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
+
+      {/* FIXED FOOTER SPECS */}
+      <footer className="fixed bottom-10 w-full flex justify-center gap-10 opacity-30 pointer-events-none text-[10px] font-bold text-white uppercase tracking-[0.4em] italic">
+        <span>AES-GCM-256</span>
+        <span>Zero-Knowledge</span>
+        <span>Ephemeral Node</span>
+      </footer>
     </main>
   );
 }

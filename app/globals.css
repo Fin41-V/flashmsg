@@ -1,38 +1,87 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --glitch-green: #61dca3;
-  --panel-bg: rgba(10, 10, 10, 0.75);
-  /* Transparent to show glitch */
+  --bg-terminal: #0a0a0a;
+  --bg-pill: #121212;
+  --accent-teal: #4fd1c5;
+  --border-muted: #2d3748;
+  --text-main: #e3e3e3;
 }
 
+/* Base resets */
 body {
-  background-color: #000000;
-  color: #ffffff;
-  font-family: 'JetBrains Mono', monospace;
-  overflow: hidden;
+  background-color: var(--bg-terminal);
+  color: var(--text-main);
+  font-family: 'Quicksand', sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
 }
 
-/* Make the Discord panels semi-transparent glass */
+/* Ensure Quicksand is applied globally or via this utility */
+.font-quicksand {
+  font-family: 'Quicksand', sans-serif;
+}
+
+/* Background Glitch Container - Fixed full-screen structure */
+.glitch-container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Stealth Glass Panel - Used for the result card */
 .discord-glass {
-  background: var(--panel-bg);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(97, 220, 163, 0.2);
-  border-radius: 8px;
+  background: rgba(18, 18, 18, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-muted);
 }
 
-.terminal-input {
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(97, 220, 163, 0.3);
-  border-radius: 4px;
-  color: var(--glitch-green);
+/* Custom Scrollbar for the textarea */
+textarea::-webkit-scrollbar {
+  width: 6px;
 }
 
-.terminal-input:focus-within {
-  border-color: var(--glitch-green);
-  box-shadow: 0 0 10px rgba(97, 220, 163, 0.2);
+textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+textarea::-webkit-scrollbar-thumb {
+  background: var(--border-muted);
+  border-radius: 10px;
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-teal);
+}
+
+/* Selection Highlight */
+::selection {
+  background: rgba(79, 209, 197, 0.2);
+  color: #ffffff;
+}
+
+/* Animation for the Scanline pulse */
+@keyframes pulse-border {
+
+  0%,
+  100% {
+    border-color: var(--border-muted);
+  }
+
+  50% {
+    border-color: var(--accent-teal);
+  }
+}
+
+.animate-secure-border {
+  animation: pulse-border 3s ease-in-out infinite;
 }
