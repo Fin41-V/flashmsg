@@ -1,13 +1,10 @@
 'use client';
 import { useState } from 'react';
+import LetterGlitch from '../components/LetterGlitch';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { generateKey, encryptMessage } from '@/utils/crypto';
-import {
-  PlusCircle, Hash, Copy, CheckCircle2,
-  Smile, Gift, StickyNote, AtSign, Inbox, Users, Search,
-  Settings, Mic, Headphones, Ghost
-} from 'lucide-react';
+import { Terminal, Lock, Copy, CheckCircle2, Hash, Shield } from 'lucide-react';
 
 export default function Home() {
   const [note, setNote] = useState('');
@@ -28,150 +25,85 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-[#313338] text-[#dbdee1] overflow-hidden">
+    <main className="relative h-screen w-screen overflow-hidden bg-black font-mono">
+      {/* THE GLITCH BACKGROUND */}
+      <div className="absolute inset-0 z-0">
+        <LetterGlitch
+          glitchColors={['#1a2e25', '#2b4539', '#61dca3']}
+          glitchSpeed={60}
+          centerVignette={true}
+          outerVignette={false}
+        />
+      </div>
 
-      {/* 1. ULTRA-MINIMAL SERVER RAIL */}
-      <div className="hidden md:flex w-[72px] flex-col items-center py-3 bg-[#1e1f22] gap-2 border-r border-black/20">
+      {/* THE UI OVERLAY */}
+      <div className="relative z-10 flex h-full w-full items-center justify-center p-4">
         <motion.div
-          whileHover={{ borderRadius: "16px" }}
-          className="w-12 h-12 bg-[#5865f2] rounded-[24px] flex items-center justify-center cursor-pointer transition-all shadow-lg"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-[500px] discord-glass overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.8)]"
         >
-          <img src="/logo.png" className="w-8 h-8 invert" alt="Logo" />
+          {/* Header */}
+          <div className="flex items-center gap-3 border-b border-white/10 p-4 bg-black/40">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#61dca3]/20 text-[#61dca3]">
+              <Shield size={20} />
+            </div>
+            <div>
+              <h1 className="text-sm font-bold tracking-widest text-[#61dca3] uppercase">FlashMsg Terminal</h1>
+              <p className="text-[10px] text-zinc-500 uppercase">Secure Handshake: Established</p>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-6">
+            <AnimatePresence mode="wait">
+              {!link ? (
+                <motion.div key="input" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                  <div className="terminal-input p-4 mb-4">
+                    <textarea
+                      className="w-full bg-transparent border-none outline-none text-sm resize-none h-32 placeholder-zinc-700 text-[#61dca3]"
+                      placeholder="ENTER CLASSIFIED DATA..."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                    />
+                  </div>
+                  <button
+                    onClick={createNote}
+                    disabled={loading || !note}
+                    className="w-full py-3 bg-[#61dca3] text-black font-bold uppercase text-xs tracking-[0.2em] hover:bg-[#4ebf8b] transition-all disabled:opacity-30 flex items-center justify-center gap-2"
+                  >
+                    {loading ? 'ENCRYPTING...' : <><Lock size={14} /> INITIATE GHOST SEQUENCE</>}
+                  </button>
+                </motion.div>
+              ) : (
+                <motion.div key="link" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-4">
+                  <div className="bg-black/60 rounded p-4 border border-[#61dca3]/30">
+                    <p className="text-[10px] text-[#61dca3] uppercase font-bold mb-2 tracking-widest">Target URL Generated:</p>
+                    <div className="text-xs break-all text-zinc-300 font-mono bg-black/40 p-3 rounded border border-white/5">
+                      {link}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
+                    className="w-full py-3 border border-[#61dca3] text-[#61dca3] font-bold uppercase text-xs tracking-widest hover:bg-[#61dca3]/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    {copied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                    {copied ? 'COPIED TO CLIPBOARD' : 'COPY SECRET LINK'}
+                  </button>
+                  <button onClick={() => { setLink(''); setNote(''); }} className="w-full text-[10px] text-zinc-600 uppercase text-center hover:text-zinc-400">
+                    Destroy Session and Restart
+                  </button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          <div className="bg-black/60 p-3 text-center border-t border-white/5">
+            <p className="text-[9px] text-zinc-600 uppercase tracking-[0.3em]">
+              Zero-Knowledge Architecture // Burn-On-Read Enabled
+            </p>
+          </div>
         </motion.div>
-        <div className="w-8 h-[2px] bg-white/5 rounded-full my-1"></div>
-        <div className="w-12 h-12 bg-[#313338] rounded-[24px] hover:rounded-xl hover:bg-[#23a559] hover:text-white transition-all duration-200 flex items-center justify-center text-zinc-500 cursor-pointer">
-          <PlusCircle size={24} />
-        </div>
       </div>
-
-      {/* 2. CHANNELS GLASS PANEL */}
-      <div className="hidden lg:flex w-60 flex-col bg-[#2b2d31]">
-        <div className="h-12 px-4 shadow-sm border-b border-black/20 flex items-center justify-between hover:bg-white/5 cursor-pointer transition-colors">
-          <span className="font-bold text-white truncate text-sm">FlashMsg Network</span>
-          <Settings size={14} className="text-zinc-400" />
-        </div>
-        <div className="flex-1 p-3 space-y-4 pt-4">
-          <div className="space-y-0.5">
-            <p className="text-[11px] font-bold text-zinc-500 uppercase px-2 mb-1 tracking-wider">Privacy Zones</p>
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded bg-[#3f4147] text-white cursor-default">
-              <Hash size={18} className="text-zinc-400" /> <span className="text-sm font-medium">classified-chat</span>
-            </div>
-            <div className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-white/5 text-zinc-400 hover:text-zinc-200 cursor-pointer transition-colors">
-              <Hash size={18} className="text-zinc-400" /> <span className="text-sm">burn-logs</span>
-            </div>
-          </div>
-        </div>
-
-        {/* DISCORD USER BAR */}
-        <div className="p-2 bg-[#232428] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <div className="w-8 h-8 bg-zinc-700 rounded-full flex items-center justify-center overflow-hidden">
-                <img src="/logo.png" className="w-5 h-5 invert opacity-70" alt="pfp" />
-              </div>
-              <div className="absolute bottom-0 right-0 w-3 h-3 bg-[#23a559] border-2 border-[#232428] rounded-full"></div>
-            </div>
-            <div className="text-[11px]">
-              <p className="font-bold text-white leading-tight">GhostUser</p>
-              <p className="text-zinc-400">#0001</p>
-            </div>
-          </div>
-          <div className="flex gap-1 text-zinc-400">
-            <Mic size={14} className="hover:text-white cursor-pointer p-0.5" />
-            <Headphones size={14} className="hover:text-white cursor-pointer p-0.5" />
-            <Settings size={14} className="hover:text-white cursor-pointer p-0.5" />
-          </div>
-        </div>
-      </div>
-
-      {/* 3. MAIN MESSAGE VIEWPORT */}
-      <div className="flex-1 flex flex-col min-w-0 bg-[#313338]">
-
-        {/* HEADER */}
-        <header className="h-12 flex items-center justify-between px-4 border-b border-black/20 bg-[#313338] z-10 shadow-sm">
-          <div className="flex items-center gap-2 font-bold text-white overflow-hidden">
-            <Hash size={24} className="text-[#949ba4] shrink-0" />
-            <span className="truncate">classified-chat</span>
-          </div>
-          <div className="flex items-center gap-4 text-[#949ba4] shrink-0">
-            <AtSign size={20} className="hover:text-white cursor-pointer" />
-            <Inbox size={20} className="hover:text-white cursor-pointer" />
-            <Users size={20} className="hover:text-white cursor-pointer" />
-            <div className="hidden sm:block relative">
-              <input type="text" placeholder="Search" className="bg-[#1e1f22] text-xs py-1 px-2 rounded w-32 focus:w-48 transition-all outline-none" />
-              <Search size={14} className="absolute right-2 top-1.5" />
-            </div>
-          </div>
-        </header>
-
-        {/* CHAT MESSAGES */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <div className="mt-10 mb-8 px-2">
-            <div className="w-16 h-16 bg-[#41434a] rounded-full flex items-center justify-center mb-4">
-              <Hash size={40} className="text-white" />
-            </div>
-            <h2 className="text-3xl font-extrabold text-white mb-2">Welcome to #classified-chat!</h2>
-            <p className="text-zinc-400 text-sm">This is the start of the channel. Send a ghost message to see encryption in action.</p>
-          </div>
-
-          <AnimatePresence>
-            {link && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-4 group">
-                <div className="w-10 h-10 bg-[#5865f2] rounded-full flex items-center justify-center shrink-0 shadow-lg">
-                  <Ghost className="w-6 h-6 text-white" />
-                </div>
-                <div className="pro-embed flex-1 max-w-2xl border-l-4 border-[#5865f2]">
-                  <h4 className="font-bold text-white text-sm mb-1 uppercase tracking-tight">Security Protocol Initialized</h4>
-                  <p className="text-sm text-zinc-400 mb-4 leading-snug">Data is locked. The following link is valid for <strong>one-time access</strong> only.</p>
-
-                  <div className="bg-[#1e1f22] p-3 rounded-lg border border-black/20 font-mono text-sm text-[#00a8fc] break-all shadow-inner">
-                    {link}
-                  </div>
-
-                  <div className="mt-5 flex gap-3">
-                    <button
-                      onClick={() => { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }}
-                      className="pro-button px-6"
-                    >
-                      {copied ? 'Link Copied!' : 'Copy Link'}
-                    </button>
-                    <button onClick={() => setLink('')} className="bg-[#4e5058] hover:bg-[#676a74] text-white px-4 py-2 rounded font-bold text-xs uppercase transition-colors">
-                      Clear
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* INPUT FOOTER */}
-        <div className="px-4 pb-6">
-          <div className="pro-input-wrapper">
-            <PlusCircle size={24} className="text-[#b5bac1] hover:text-white cursor-pointer transition-colors" />
-            <textarea
-              className="w-full bg-transparent border-none outline-none text-[#dbdee1] placeholder-[#4e5058] resize-none h-6 mt-0.5 text-[15px]"
-              placeholder="Message #classified-chat"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  createNote();
-                }
-              }}
-            />
-            <div className="flex gap-4 text-[#b5bac1]">
-              <Gift size={22} className="hover:text-white cursor-pointer hidden sm:block" />
-              <StickyNote size={22} className="hover:text-white cursor-pointer hidden sm:block" />
-              <Smile size={22} className="hover:text-white cursor-pointer" />
-            </div>
-          </div>
-          <p className="text-[10px] text-zinc-500 mt-2 px-1 uppercase font-bold tracking-widest">
-            {loading ? 'Encrypting Packets...' : 'Zero-Knowledge Encryption Active'}
-          </p>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }
